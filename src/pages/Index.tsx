@@ -366,8 +366,7 @@ const Index = () => {
                     </div>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="outline" onClick={fetchAndProcessTasks} disabled={isRefreshing}>
-                                {/*need to fixx this issue */}
+                            <Button variant="outline" onClick={() => fetchAndProcessTasks()} disabled={isRefreshing}>
                                 <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}/>
                                 Refresh
                             </Button>
