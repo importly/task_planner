@@ -67,7 +67,7 @@ const Index = () => {
         account,
         isLoading,
         availableTasks,
-        needsTriageTasks,
+        needsReviewTasks,
         todaysPlan,
         login,
         logout,
@@ -75,7 +75,7 @@ const Index = () => {
         isExporting,
         exportPlan,
         isEnriching,
-        enrichAllTriageTasks,
+        enrichAllReviewTasks,
         isRefreshing,
         fetchAndProcessTasks,
         enrichSingleTask,
@@ -135,7 +135,7 @@ const Index = () => {
         {key: 'g', altKey: true, callback: handleGeneratePlan},
         {
             key: 'e', altKey: true, callback: () => {
-                if (!isEnriching && needsTriageTasks.length > 0) enrichAllTriageTasks();
+                if (!isEnriching && needsReviewTasks.length > 0) enrichAllReviewTasks();
             }
         },
         {
@@ -148,7 +148,7 @@ const Index = () => {
                 if (!isExporting && todaysPlan.length > 0) exportPlan();
             }
         },
-    ], [isEnriching, needsTriageTasks, enrichAllTriageTasks, isRefreshing, fetchAndProcessTasks, isExporting, todaysPlan, exportPlan, handleGeneratePlan]);
+    ], [isEnriching, needsReviewTasks, enrichAllReviewTasks, isRefreshing, fetchAndProcessTasks, isExporting, todaysPlan, exportPlan, handleGeneratePlan]);
 
     useHotkeys(hotkeys);
 
@@ -164,7 +164,7 @@ const Index = () => {
     }, [todaysPlan]);
 
     const groupedAvailableTasks = useMemo(() => groupTasksByList(availableTasks), [availableTasks]);
-    const groupedNeedsTriageTasks = useMemo(() => groupTasksByList(needsTriageTasks), [needsTriageTasks]);
+    const groupedNeedsReviewTasks = useMemo(() => groupTasksByList(needsReviewTasks), [needsReviewTasks]);
     const allContexts = useMemo(() => {
         const contexts = new Set<string>();
         [...availableTasks, ...todaysPlan].forEach(task => {
@@ -338,17 +338,17 @@ const Index = () => {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                    <h3 className="font-semibold text-lg">Triage Center</h3>
+                    <h3 className="font-semibold text-lg">Review Center</h3>
                     <div className="flex flex-col gap-3 p-4 border border-white/10 rounded-lg bg-black/20">
                         <p className="text-sm text-muted-foreground">
-                            {needsTriageTasks.length > 0
-                                ? `${needsTriageTasks.length} tasks need properties like time and urgency to be planned.`
+                            {needsReviewTasks.length > 0
+                                ? `${needsReviewTasks.length} tasks need properties like time and urgency to be planned.`
                                 : "All tasks are ready for planning!"}
                         </p>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button onClick={enrichAllTriageTasks}
-                                        disabled={isEnriching || needsTriageTasks.length === 0}>
+                                <Button onClick={enrichAllReviewTasks}
+                                        disabled={isEnriching || needsReviewTasks.length === 0}>
                                     {isEnriching ? (
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                                     ) : (
@@ -359,7 +359,7 @@ const Index = () => {
                             </TooltipTrigger>
                             <TooltipContent>
                                 <div className="flex items-center justify-between w-full gap-4">
-                                    <span>Use AI to enrich all triage tasks</span><Kbd>Alt + E</Kbd>
+                                    <span>Use AI to enrich all pending tasks</span><Kbd>Alt + E</Kbd>
                                 </div>
                             </TooltipContent>
                         </Tooltip>
@@ -457,7 +457,7 @@ const Index = () => {
                         </TabsTrigger>
                         <TabsTrigger value="triage">
                             <FileWarning className="mr-2 h-4 w-4"/>
-                            Needs Triage <Badge variant="destructive" className="ml-2">{needsTriageTasks.length}</Badge>
+                            Needs Review <Badge variant="destructive" className="ml-2">{needsReviewTasks.length}</Badge>
                         </TabsTrigger>
                     </TabsList>
 
@@ -542,10 +542,10 @@ const Index = () => {
                     </TabsContent>
 
                     <TabsContent value="triage" className="mt-6">
-                        {Object.keys(groupedNeedsTriageTasks).length > 0 ? (
+                        {Object.keys(groupedNeedsReviewTasks).length > 0 ? (
                             <Accordion type="multiple" className="w-full"
-                                       defaultValue={Object.keys(groupedNeedsTriageTasks)}>
-                                {Object.entries(groupedNeedsTriageTasks).map(([listName, tasks]) => (
+                                       defaultValue={Object.keys(groupedNeedsReviewTasks)}>
+                                {Object.entries(groupedNeedsReviewTasks).map(([listName, tasks]) => (
                                     <AccordionItem value={listName} key={listName}>
                                         <AccordionTrigger>{listName} ({tasks.length})</AccordionTrigger>
                                         <AccordionContent className="px-4 pt-2">
@@ -565,7 +565,7 @@ const Index = () => {
                             </Accordion>
                         ) : (
                             <div className="text-center py-16 border-2 border-dashed rounded-lg animate-scale-in">
-                                <h3 className="text-lg font-medium">Triage is all clear!</h3>
+                                <h3 className="text-lg font-medium">Review list is all clear!</h3>
                                 <p className="text-muted-foreground mt-1">All your tasks have the necessary properties
                                     for planning.</p>
                             </div>

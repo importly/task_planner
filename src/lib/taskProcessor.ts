@@ -75,10 +75,10 @@ export const mapImportance = (level: number): 'low' | 'normal' | 'high' => {
     return 'high';
 };
 
-// Processes a list of raw tasks into enriched and triage categories.
+// Processes a list of raw tasks into enriched and review categories.
 export const processTasks = (rawTasks: (Task & { listId: string; listName: string })[]) => {
     const enriched: EnrichedTask[] = [];
-    const triage: Task[] = [];
+    const reviewList: Task[] = [];
 
     rawTasks.forEach((task) => {
         const customProps = parseTaskProperties(task.body.content);
@@ -86,7 +86,7 @@ export const processTasks = (rawTasks: (Task & { listId: string; listName: strin
             const enrichedTaskData = {...task, ...customProps} as Omit<EnrichedTask, 'score'>;
             enriched.push({...enrichedTaskData, score: 0}); // Score calculated later
         } else {
-            triage.push(task as Task);
+            reviewList.push(task as Task);
         }
     });
 
@@ -97,7 +97,7 @@ export const processTasks = (rawTasks: (Task & { listId: string; listName: strin
 
     return {
         enrichedTasks: scoredTasks.sort((a, b) => b.score - a.score),
-        triageTasks: triage,
+        reviewTasks: reviewList,
     };
 };
 

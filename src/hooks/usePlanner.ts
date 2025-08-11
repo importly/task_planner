@@ -16,7 +16,7 @@ export const usePlanner = () => {
     const {instance, accounts, inProgress} = useMsal();
 
     const [allEnrichedTasks, setAllEnrichedTasks] = useState<EnrichedTask[]>([]);
-    const [needsTriageTasks, setNeedsTriageTasks] = useState<Task[]>([]);
+    const [needsReviewTasks, setneedsReviewTasks] = useState<Task[]>([]);
     const [todaysPlan, setTodaysPlan] = useState<(EnrichedTask | Task)[]>([]);
     const [availableTasks, setAvailableTasks] = useState<EnrichedTask[]>([]);
     const [taskLists, setTaskLists] = useState<any[]>([]);
@@ -110,9 +110,9 @@ export const usePlanner = () => {
         return {
             todaysPlan: filterAndSort(todaysPlan),
             availableTasks: filterAndSort(availableTasks),
-            needsTriageTasks: filterAndSort(needsTriageTasks),
+            needsReviewTasks: filterAndSort(needsReviewTasks),
         };
-    }, [todaysPlan, availableTasks, needsTriageTasks, filter, sort]);
+    }, [todaysPlan, availableTasks, needsReviewTasks, filter, sort]);
 
     const acquireToken = useCallback(async () => {
         if (!account) throw new Error("User account not found.");
@@ -150,11 +150,11 @@ export const usePlanner = () => {
                 allRawTasks.push(...tasksWithListInfo);
             }
 
-            const {enrichedTasks: allEnriched, triageTasks: allTriage} = processTasks(allRawTasks);
+            const {enrichedTasks: allEnriched, reviewTasks: allPending} = processTasks(allRawTasks);
 
             const planTasks: (EnrichedTask | Task)[] = [];
             const availableForPlanning: EnrichedTask[] = [];
-            const needsTriage: Task[] = [];
+            const needsReview: Task[] = [];
 
             if (planList) {
                 allEnriched.forEach(task => {
@@ -164,22 +164,22 @@ export const usePlanner = () => {
                         availableForPlanning.push(task);
                     }
                 });
-                allTriage.forEach(task => {
+                allPending.forEach(task => {
                     if (task.listId === planList.id) {
                         planTasks.push(task);
                     } else {
-                        needsTriage.push(task);
+                        needsReview.push(task);
                     }
                 });
             } else {
                 availableForPlanning.push(...allEnriched);
-                needsTriage.push(...allTriage);
+                needsReview.push(...allPending);
             }
 
             setTodaysPlan(planTasks.sort((a, b) => ((b as EnrichedTask).score ?? 0) - ((a as EnrichedTask).score ?? 0)));
             setAllEnrichedTasks(allEnriched);
             setAvailableTasks(availableForPlanning);
-            setNeedsTriageTasks(needsTriage);
+            setneedsReviewTasks(needsReview);
 
             if (!isChainedCall) {
                 showSuccessToast("Tasks loaded successfully!");
@@ -445,18 +445,18 @@ ${originalDescription}`;
         }
     };
 
-    const enrichAllTriageTasks = async () => {
-        if (needsTriageTasks.length === 0) {
+    const enrichAllReviewTasks = async () => {
+        if (needsReviewTasks.length === 0) {
             toast.success("No tasks to enrich!");
             return;
         }
 
         setIsEnriching(true);
-        showLoadingToast(`Enriching ${needsTriageTasks.length} tasks with AI...`);
+        showLoadingToast(`Enriching ${needsReviewTasks.length} tasks with AI...`);
         let successfulCount = 0;
 
         try {
-            for (const task of needsTriageTasks) {
+            for (const task of needsReviewTasks) {
                 try {
                     await enrichTask(task);
                     successfulCount++;
@@ -467,7 +467,7 @@ ${originalDescription}`;
 
             if (successfulCount > 0) {
                 await fetchAndProcessTasks(true);
-                showSuccessToast(`${successfulCount} of ${needsTriageTasks.length} tasks were enriched!`);
+                showSuccessToast(`${successfulCount} of ${needsReviewTasks.length} tasks were enriched!`);
             } else {
                 showErrorToast("No tasks could be enriched.");
             }
@@ -483,7 +483,7 @@ ${originalDescription}`;
         showLoadingToast("Completing task...");
         try {
             const accessToken = await acquireToken();
-            const taskToComplete = [...allEnrichedTasks, ...needsTriageTasks].find(t => t.id === taskId);
+            const taskToComplete = [...allEnrichedTasks, ...needsReviewTasks].find(t => t.id === taskId);
 
             await graphApi.updateTask(accessToken, listId, taskId, {status: 'completed'});
 
@@ -514,7 +514,7 @@ ${originalDescription}`;
             const filterOutCompleted = (tasks: (Task | EnrichedTask)[]) => tasks.filter(t => t.id !== taskId);
             setTodaysPlan(filterOutCompleted);
             setAvailableTasks(tasks => filterOutCompleted(tasks) as EnrichedTask[]);
-            setNeedsTriageTasks(filterOutCompleted);
+            setneedsReviewTasks(filterOutCompleted);
             setAllEnrichedTasks(tasks => filterOutCompleted(tasks) as EnrichedTask[]);
 
             showSuccessToast("Task completed!");
@@ -525,7 +525,7 @@ ${originalDescription}`;
         } finally {
             setCompletingTaskId(null);
         }
-    }, [acquireToken, account, allEnrichedTasks, needsTriageTasks]);
+    }, [acquireToken, account, allEnrichedTasks, needsReviewTasks]);
 
     const createTask = useCallback(async (listId: string, title: string, body: string) => {
         showLoadingToast("Creating new task...");
@@ -569,7 +569,7 @@ ${originalDescription}`;
             setTodaysPlan(prev => prev.map(updateTaskInState));
             setAvailableTasks(prev => prev.map(updateTaskInState) as EnrichedTask[]);
             setAllEnrichedTasks(prev => prev.map(updateTaskInState) as EnrichedTask[]);
-            setNeedsTriageTasks(prev => prev.map(updateTaskInState));
+            setneedsReviewTasks(prev => prev.map(updateTaskInState));
 
         } catch (error) {
             console.error(error);
@@ -619,7 +619,7 @@ ${originalDescription}`;
             setTodaysPlan(prev => prev.map(updateTaskInState));
             setAvailableTasks(prev => prev.map(updateTaskInState) as EnrichedTask[]);
             setAllEnrichedTasks(prev => prev.map(updateTaskInState) as EnrichedTask[]);
-            setNeedsTriageTasks(prev => prev.map(updateTaskInState));
+            setneedsReviewTasks(prev => prev.map(updateTaskInState));
 
             await graphApi.updateChecklistItem(accessToken, listId, taskId, checklistItemId, {displayName: newDisplayName});
         } catch (error) {
@@ -637,7 +637,7 @@ ${originalDescription}`;
         account,
         isLoading: inProgress !== InteractionStatus.None,
         availableTasks: sortedAndFilteredTasks.availableTasks,
-        needsTriageTasks: sortedAndFilteredTasks.needsTriageTasks,
+        needsReviewTasks: sortedAndFilteredTasks.needsReviewTasks,
         todaysPlan: sortedAndFilteredTasks.todaysPlan,
         login,
         logout,
@@ -645,7 +645,7 @@ ${originalDescription}`;
         isExporting,
         exportPlan,
         isEnriching,
-        enrichAllTriageTasks,
+        enrichAllReviewTasks,
         isRefreshing,
         fetchAndProcessTasks,
         enrichSingleTask,
