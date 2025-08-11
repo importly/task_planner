@@ -6,17 +6,17 @@ import {usePlanner} from "@/hooks/usePlanner";
 import {TaskCard} from "@/components/TaskCard";
 import {Separator} from "@/components/ui/separator";
 import {
-  BarChart2,
-  CalendarCheck,
-  ClipboardCheck,
-  FileWarning,
-  LayoutDashboard,
-  ListTodo,
-  Loader2,
-  LogOut,
-  PlusCircle,
-  RefreshCw,
-  Wand2
+    BarChart2,
+    CalendarCheck,
+    ClipboardCheck,
+    FileWarning,
+    LayoutDashboard,
+    ListTodo,
+    Loader2,
+    LogOut,
+    PlusCircle,
+    RefreshCw,
+    Wand2
 } from "lucide-react";
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger,} from "@/components/ui/accordion";
 import {EnrichedTask, Task} from "@/types";
@@ -32,12 +32,7 @@ import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import {Kbd} from "@/components/ui/kbd";
 import {useHotkeys} from "@/hooks/useHotkeys";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
+    Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger
 } from "@/components/ui/dialog";
 import {EditTaskForm} from "@/components/EditTaskForm";
 import {WorkloadWarningBanner} from "@/components/WorkloadWarningBanner";
@@ -108,6 +103,8 @@ const Index = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [isCreateTaskOpen, setCreateTaskOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | EnrichedTask | null>(null);
+    const [isTabVisible, setIsTabVisible] = useState(!document.hidden);
+
 
     const createTaskButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -122,6 +119,22 @@ const Index = () => {
         }
     }, [calculatedTimeBudget]);
 
+    useEffect(() => {
+        const handleVisibilityChange = () => setIsTabVisible(!document.hidden);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
+
+    useEffect(() => {
+        // We only try to log in if loading is done, user is not authenticated, AND the tab is active.
+        if (!isLoading && !isAuthenticated && isTabVisible) {
+            login();
+        }
+    }, [isAuthenticated, login, isLoading, isTabVisible]);
+
     const handleGeneratePlan = () => {
         const budget = parseInt(timeBudget, 10);
         if (!isNaN(budget) && budget > 0) {
@@ -130,25 +143,23 @@ const Index = () => {
         setPlanGenerated(true);
     };
 
-    const hotkeys = useMemo(() => [
-        {key: 'n', altKey: true, callback: () => createTaskButtonRef.current?.click()},
-        {key: 'g', altKey: true, callback: handleGeneratePlan},
-        {
-            key: 'e', altKey: true, callback: () => {
-                if (!isEnriching && needsReviewTasks.length > 0) enrichAllReviewTasks();
-            }
-        },
-        {
-            key: 'r', altKey: true, callback: () => {
-                if (!isRefreshing) fetchAndProcessTasks();
-            }
-        },
-        {
-            key: 'x', altKey: true, callback: () => {
-                if (!isExporting && todaysPlan.length > 0) exportPlan();
-            }
-        },
-    ], [isEnriching, needsReviewTasks, enrichAllReviewTasks, isRefreshing, fetchAndProcessTasks, isExporting, todaysPlan, exportPlan, handleGeneratePlan]);
+    const hotkeys = useMemo(() => [{
+        key: 'n',
+        altKey: true,
+        callback: () => createTaskButtonRef.current?.click()
+    }, {key: 'g', altKey: true, callback: handleGeneratePlan}, {
+        key: 'e', altKey: true, callback: () => {
+            if (!isEnriching && needsReviewTasks.length > 0) enrichAllReviewTasks();
+        }
+    }, {
+        key: 'r', altKey: true, callback: () => {
+            if (!isRefreshing) fetchAndProcessTasks();
+        }
+    }, {
+        key: 'x', altKey: true, callback: () => {
+            if (!isExporting && todaysPlan.length > 0) exportPlan();
+        }
+    },], [isEnriching, needsReviewTasks, enrichAllReviewTasks, isRefreshing, fetchAndProcessTasks, isExporting, todaysPlan, exportPlan, handleGeneratePlan]);
 
     useHotkeys(hotkeys);
 
@@ -185,58 +196,18 @@ const Index = () => {
             <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 animate-fade-in">
                 <Loader2 className="h-16 w-16 animate-spin text-primary"/>
                 <p className="text-muted-foreground mt-4">Loading your session...</p>
-            </div>
-        );
+            </div>);
     }
 
+    // --- MODIFIED SECTION ---
+    // The entire 'if (!isAuthenticated)' block has been removed and replaced with this.
+    // This will render nothing (a blank page) for unauthenticated users, which is not recommended.
     if (!isAuthenticated) {
-        return (
-            <div
-                className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-background p-4">
-                {/* Animated background */}
-                <div className="absolute inset-0 w-full h-full">
-                    {/* Color Blobs */}
-                    <div
-                        className="absolute top-1/4 -left-16 w-72 h-72 bg-blue-500/50 rounded-full mix-blend-lighten filter blur-3xl opacity-50 animate-blob"
-                        style={{animationDelay: '0s'}}
-                    />
-                    <div
-                        className="absolute top-1/2 -right-16 w-80 h-80 bg-purple-500/50 rounded-full mix-blend-lighten filter blur-3xl opacity-50 animate-blob"
-                        style={{animationDelay: '3s'}}
-                    />
-                    <div
-                        className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-72 h-72 bg-pink-500/50 rounded-full mix-blend-lighten filter blur-3xl opacity-50 animate-blob"
-                        style={{animationDelay: '6s'}}
-                    />
-
-                    {/* Shooting Stars */}
-                    <div className="shooting-star" style={{top: '0%', left: '90%', animationDelay: '0s', animationDuration: '2s'}}/>
-                    <div className="shooting-star" style={{top: '10%', left: '70%', animationDelay: '1.2s', animationDuration: '3s'}}/>
-                    <div className="shooting-star" style={{top: '30%', left: '80%', animationDelay: '0.5s', animationDuration: '2.5s'}}/>
-                    <div className="shooting-star" style={{top: '50%', left: '100%', animationDelay: '2.5s', animationDuration: '1.5s'}}/>
-                    <div className="shooting-star" style={{top: '80%', left: '80%', animationDelay: '0.2s', animationDuration: '4s'}}/>
-                </div>
-
-                {/* Frosted glass card */}
-                <div
-                    className="relative z-10 flex flex-col items-center justify-center p-8 sm:p-12 space-y-6 bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl text-center animate-fade-in-up login-card-gradient">
-                    <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white drop-shadow-lg">
-                        Yet Another Task Planner
-                    </h1>
-                    <Button
-                        size="lg"
-                        onClick={login}
-                        className="bg-white text-black hover:bg-white/90 transition-all duration-300 transform hover:scale-105 shadow-lg px-8 py-6 text-lg"
-                    >
-                        Enter Dashboard
-                    </Button>
-                </div>
-            </div>
-        );
+        return null;
     }
+    // --- END MODIFIED SECTION ---
 
-    return (
-        <div className="min-h-screen flex flex-col md:flex-row text-foreground overflow-hidden">
+    return (<div className="min-h-screen flex flex-col md:flex-row text-foreground overflow-hidden">
             {/* Sidebar */}
             <aside
                 className="w-full md:w-80 lg:w-96 grainy-gradient-sidebar bg-card backdrop-blur-sm p-6 flex flex-col gap-8 border-r border-white/10 animate-slide-in-from-left">
@@ -341,19 +312,14 @@ const Index = () => {
                     <h3 className="font-semibold text-lg">Review Center</h3>
                     <div className="flex flex-col gap-3 p-4 border border-white/10 rounded-lg bg-black/20">
                         <p className="text-sm text-muted-foreground">
-                            {needsReviewTasks.length > 0
-                                ? `${needsReviewTasks.length} tasks need properties like time and urgency to be planned.`
-                                : "All tasks are ready for planning!"}
+                            {needsReviewTasks.length > 0 ? `${needsReviewTasks.length} tasks need properties like time and urgency to be planned.` : "All tasks are ready for planning!"}
                         </p>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button onClick={enrichAllReviewTasks}
                                         disabled={isEnriching || needsReviewTasks.length === 0}>
-                                    {isEnriching ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
-                                    ) : (
-                                        <Wand2 className="mr-2 h-4 w-4"/>
-                                    )}
+                                    {isEnriching ? (<Loader2 className="mr-2 h-4 w-4 animate-spin"/>) : (
+                                        <Wand2 className="mr-2 h-4 w-4"/>)}
                                     Enrich All with AI
                                 </Button>
                             </TooltipTrigger>
@@ -425,8 +391,7 @@ const Index = () => {
                                 <SelectContent>
                                     <SelectItem value="all">All Contexts</SelectItem>
                                     {allContexts.map(context => (
-                                        <SelectItem key={context} value={context}>{context}</SelectItem>
-                                    ))}
+                                        <SelectItem key={context} value={context}>{context}</SelectItem>))}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -463,16 +428,13 @@ const Index = () => {
 
                     <TabsContent value="plan" className="mt-6">
                         <div className="flex justify-between items-center mb-4">
-                            {todaysPlan.length > 0 ? (
-                                <>
+                            {todaysPlan.length > 0 ? (<>
                                     <div className="text-sm text-muted-foreground">
                                         Total
                                         time: <strong>{planMeta?.totalMin || planTotalTime} min</strong> / {timeBudget} min
-                                        {planMeta && (
-                                            <div className="flex gap-2 text-xs">
+                                        {planMeta && (<div className="flex gap-2 text-xs">
                                                 <span>(H: {planMeta.energyLoad.high} M: {planMeta.energyLoad.medium} L: {planMeta.energyLoad.low})</span>
-                                            </div>
-                                        )}
+                                            </div>)}
                                     </div>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -487,32 +449,28 @@ const Index = () => {
                                             </div>
                                         </TooltipContent>
                                     </Tooltip>
-                                </>
-                            ) : null}
+                                </>) : null}
                         </div>
-                        {todaysPlan.length > 0 ? (
-                            todaysPlan.map((task) => <TaskCard key={task.id} task={task} onEnrich={enrichSingleTask}
-                                                               isEnriching={enrichingTaskId === task.id}
-                                                               onComplete={completeTask}
-                                                               isCompleting={completingTaskId === task.id}
-                                                               onUpdateChecklistItem={updateChecklistItemStatus}
-                                                               updatingChecklistItemId={updatingChecklistItemId}
-                                                               onEdit={setEditingTask}
-                                                               onUpdateChecklistItemName={updateChecklistItemDetails}
-                                                               onFocus={handleFocus}/>)
-                        ) : (
+                        {todaysPlan.length > 0 ? (todaysPlan.map((task) => <TaskCard key={task.id} task={task}
+                                                                                     onEnrich={enrichSingleTask}
+                                                                                     isEnriching={enrichingTaskId === task.id}
+                                                                                     onComplete={completeTask}
+                                                                                     isCompleting={completingTaskId === task.id}
+                                                                                     onUpdateChecklistItem={updateChecklistItemStatus}
+                                                                                     updatingChecklistItemId={updatingChecklistItemId}
+                                                                                     onEdit={setEditingTask}
+                                                                                     onUpdateChecklistItemName={updateChecklistItemDetails}
+                                                                                     onFocus={handleFocus}/>)) : (
                             <div className="text-center py-16 border-2 border-dashed rounded-lg animate-scale-in">
                                 <h3 className="text-lg font-medium">{planGenerated ? "Nothing to do today." : "Your plan is empty."}
                                 </h3>
                                 <p className="text-muted-foreground mt-1">{planGenerated ? "Enjoy your free time or generate a new plan!" : "Generate a plan from the sidebar to get started."}</p>
-                            </div>
-                        )}
+                            </div>)}
                     </TabsContent>
 
                     <TabsContent value="available" className="mt-6">
-                        {Object.keys(groupedAvailableTasks).length > 0 ? (
-                            <Accordion type="multiple" className="w-full"
-                                       defaultValue={Object.keys(groupedAvailableTasks)}>
+                        {Object.keys(groupedAvailableTasks).length > 0 ? (<Accordion type="multiple" className="w-full"
+                                                                                     defaultValue={Object.keys(groupedAvailableTasks)}>
                                 {Object.entries(groupedAvailableTasks).map(([listName, tasks]) => (
                                     <AccordionItem value={listName} key={listName}>
                                         <AccordionTrigger>{listName} ({tasks.length})</AccordionTrigger>
@@ -526,19 +484,15 @@ const Index = () => {
                                                           updatingChecklistItemId={updatingChecklistItemId}
                                                           onEdit={setEditingTask}
                                                           onUpdateChecklistItemName={updateChecklistItemDetails}
-                                                          onFocus={handleFocus}/>
-                                            ))}
+                                                          onFocus={handleFocus}/>))}
                                         </AccordionContent>
-                                    </AccordionItem>
-                                ))}
-                            </Accordion>
-                        ) : (
+                                    </AccordionItem>))}
+                            </Accordion>) : (
                             <div className="text-center py-16 border-2 border-dashed rounded-lg animate-scale-in">
                                 <h3 className="text-lg font-medium">No tasks available.</h3>
                                 <p className="text-muted-foreground mt-1">Try refreshing or adding tasks in Microsoft To
                                     Do.</p>
-                            </div>
-                        )}
+                            </div>)}
                     </TabsContent>
 
                     <TabsContent value="triage" className="mt-6">
@@ -560,22 +514,18 @@ const Index = () => {
                                                                            onUpdateChecklistItemName={updateChecklistItemDetails}
                                                                            onFocus={handleFocus}/>)}
                                         </AccordionContent>
-                                    </AccordionItem>
-                                ))}
-                            </Accordion>
-                        ) : (
+                                    </AccordionItem>))}
+                            </Accordion>) : (
                             <div className="text-center py-16 border-2 border-dashed rounded-lg animate-scale-in">
                                 <h3 className="text-lg font-medium">Review list is all clear!</h3>
                                 <p className="text-muted-foreground mt-1">All your tasks have the necessary properties
                                     for planning.</p>
-                            </div>
-                        )}
+                            </div>)}
                     </TabsContent>
                 </Tabs>
             </main>
 
-            {editingTask && (
-                <Dialog open={true} onOpenChange={(isOpen) => !isOpen && setEditingTask(null)}>
+            {editingTask && (<Dialog open={true} onOpenChange={(isOpen) => !isOpen && setEditingTask(null)}>
                     <DialogContent className="sm:max-w-[480px]">
                         <DialogHeader>
                             <DialogTitle>Edit Task</DialogTitle>
@@ -593,10 +543,8 @@ const Index = () => {
                             onSuccess={() => setEditingTask(null)}
                         />
                     </DialogContent>
-                </Dialog>
-            )}
-        </div>
-    );
+                </Dialog>)}
+        </div>);
 };
 
 export default Index;
