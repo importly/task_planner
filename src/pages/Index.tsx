@@ -192,19 +192,45 @@ const Index = () => {
     if (!isAuthenticated) {
         return (
             <div
-                className="min-h-screen flex flex-col items-center justify-center bg-background p-4 text-center animate-fade-in">
-                <h1 className="text-4xl font-bold tracking-tight mb-4 animate-fade-in-up">
-                    Intelligent Daily Planner for Microsoft To Do
-                </h1>
-                <p className="text-lg text-muted-foreground mb-8 max-w-2xl animate-fade-in-up"
-                   style={{animationDelay: '200ms', animationFillMode: 'backwards'}}>
-                    Automatically score, prioritize, and schedule your tasks based on urgency, importance, and estimated
-                    time.
-                </p>
-                <Button size="lg" onClick={login} className="animate-fade-in-up"
-                        style={{animationDelay: '400ms', animationFillMode: 'backwards'}}>
-                    Connect to Microsoft To Do
-                </Button>
+                className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-background p-4">
+                {/* Animated background */}
+                <div className="absolute inset-0 w-full h-full">
+                    {/* Color Blobs */}
+                    <div
+                        className="absolute top-1/4 -left-16 w-72 h-72 bg-blue-500/50 rounded-full mix-blend-lighten filter blur-3xl opacity-50 animate-blob"
+                        style={{animationDelay: '0s'}}
+                    />
+                    <div
+                        className="absolute top-1/2 -right-16 w-80 h-80 bg-purple-500/50 rounded-full mix-blend-lighten filter blur-3xl opacity-50 animate-blob"
+                        style={{animationDelay: '3s'}}
+                    />
+                    <div
+                        className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-72 h-72 bg-pink-500/50 rounded-full mix-blend-lighten filter blur-3xl opacity-50 animate-blob"
+                        style={{animationDelay: '6s'}}
+                    />
+
+                    {/* Shooting Stars */}
+                    <div className="shooting-star" style={{top: '0%', left: '90%', animationDelay: '0s', animationDuration: '2s'}}/>
+                    <div className="shooting-star" style={{top: '10%', left: '70%', animationDelay: '1.2s', animationDuration: '3s'}}/>
+                    <div className="shooting-star" style={{top: '30%', left: '80%', animationDelay: '0.5s', animationDuration: '2.5s'}}/>
+                    <div className="shooting-star" style={{top: '50%', left: '100%', animationDelay: '2.5s', animationDuration: '1.5s'}}/>
+                    <div className="shooting-star" style={{top: '80%', left: '80%', animationDelay: '0.2s', animationDuration: '4s'}}/>
+                </div>
+
+                {/* Frosted glass card */}
+                <div
+                    className="relative z-10 flex flex-col items-center justify-center p-8 sm:p-12 space-y-6 bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl text-center animate-fade-in-up login-card-gradient">
+                    <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white drop-shadow-lg">
+                        Yet Another Task Planner
+                    </h1>
+                    <Button
+                        size="lg"
+                        onClick={login}
+                        className="bg-white text-black hover:bg-white/90 transition-all duration-300 transform hover:scale-105 shadow-lg px-8 py-6 text-lg"
+                    >
+                        Enter Dashboard
+                    </Button>
+                </div>
             </div>
         );
     }

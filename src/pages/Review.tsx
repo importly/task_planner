@@ -147,9 +147,6 @@ const Review = () => {
                     <StatsCard title="Burnout Risk" value={burnoutRisk?.riskLevel || 'N/A'}
                                icon={<Zap className="h-4 w-4 text-muted-foreground"/>} loading={loading}
                                description="Based on high-energy tasks"/>
-                    <StatsCard title="Active Goals" value={goalProgress.length}
-                               icon={<TrendingUp className="h-4 w-4 text-muted-foreground"/>} loading={loading}
-                               description="Goals in progress"/>
                 </div>
 
                 {data.length > 0 ? (<div className="grid gap-6 lg:grid-cols-3">

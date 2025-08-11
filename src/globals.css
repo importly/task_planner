@@ -72,9 +72,6 @@
     body {
         @apply bg-background text-foreground;
         background-attachment: fixed;
-        background-image: radial-gradient(ellipse 100% 50% at -20% 40%, hsla(217, 91%, 60%, 0.06), transparent 80%),
-        radial-gradient(ellipse 100% 50% at 120% 60%, hsla(280, 80%, 55%, 0.05), transparent 80%);
-        isolation: isolate;
     }
 
     body::after {
@@ -96,8 +93,19 @@
 
 @layer utilities {
     .grainy-gradient-sidebar {
-        background-image: radial-gradient(ellipse 80% 100% at 10% 110%, hsla(217, 91%, 60%, 0.15), transparent 70%),
-        radial-gradient(ellipse 80% 100% at 90% -10%, hsla(280, 80%, 55%, 0.12), transparent 70%);
+        position: relative;
+        isolation: isolate;
+    }
+
+    .grainy-gradient-sidebar::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        
+        filter: contrast(170%) brightness(300%);
+        background-size: cover;
+        mix-blend-mode: soft-light;
     }
 
     .scrollbar-hide::-webkit-scrollbar {
@@ -107,5 +115,35 @@
     .scrollbar-hide { /*idk, I just found this on the internet*/
         -ms-overflow-style: none;
         scrollbar-width: none;
+    }
+
+    .shooting-star {
+        @apply absolute top-1/2 left-1/2 h-0.5 w-0.5 rounded-full bg-white shadow-[0_0_0_4px_rgba(255,255,255,0.1),0_0_0_8px_rgba(255,255,255,0.1),0_0_20px_rgba(255,255,255,1)];
+        animation: animate-star 3s linear infinite;
+    }
+
+    .shooting-star::before {
+        content: '';
+        @apply absolute top-1/2 h-px w-[300px] -translate-y-1/2;
+        background: linear-gradient(90deg, theme('colors.white'), transparent);
+    }
+
+    .login-card-gradient {
+        background-image: radial-gradient(ellipse 100% 50% at -20% 40%, hsla(217, 91%, 60%, 0.1), transparent 80%),
+        radial-gradient(ellipse 100% 50% at 120% 60%, hsla(280, 80%, 55%, 0.08), transparent 80%);
+    }
+}
+
+@keyframes animate-star {
+    0% {
+        transform: rotate(315deg) translateX(0);
+        opacity: 1;
+    }
+    70% {
+        opacity: 1;
+    }
+    100% {
+        transform: rotate(315deg) translateX(-1500px);
+        opacity: 0;
     }
 }
