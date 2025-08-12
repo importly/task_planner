@@ -11,7 +11,7 @@ export const msalConfig: Configuration = {
         redirectUri: window.location.origin,
     },
     cache: {
-        cacheLocation: "sessionStorage", // This is more secure than localStorage.
+        cacheLocation: "localStorage", // Persists session across browser tabs and windows.
         storeAuthStateInCookie: false,
     },
 };
