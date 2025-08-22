@@ -490,6 +490,21 @@ ${originalDescription}`;
             if (taskToComplete && account && supabase) {
                 const isEnriched = 'score' in taskToComplete;
                 const enriched = taskToComplete as EnrichedTask;
+
+// CREATE TABLE public.completed_tasks (
+//   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+//   task_id text NOT NULL,
+//   user_id text NOT NULL,
+//   completed_at timestamp with time zone NOT NULL DEFAULT now(),
+//   title text NOT NULL,
+//   est_time integer,
+//   urgency integer,
+//   importance integer,
+//   context text,
+//   list_name text,
+//   energy text DEFAULT '"medium"'::text,
+//   CONSTRAINT completed_tasks_pkey PRIMARY KEY (id)
+
                 const completedTaskData = {
                     task_id: enriched.id,
                     user_id: account.localAccountId,
@@ -500,8 +515,6 @@ ${originalDescription}`;
                     context: isEnriched ? enriched.context : null,
                     list_name: enriched.listName,
                     energy: isEnriched ? enriched.energy : null,
-                    start_date: isEnriched ? enriched.startDate : null,
-                    // goal_id would be added here if implemented
                 };
 
                 const {error} = await supabase.from('completed_tasks').insert([completedTaskData]);
