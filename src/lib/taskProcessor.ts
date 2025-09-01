@@ -53,8 +53,14 @@ export const calculateScore = (task: Omit<EnrichedTask, "score">, allTasks: Enri
         const diffTime = dueDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        if (diffDays <= 0) urgencyBoost = 50;
-        else if (diffDays <= 7) urgencyBoost = 15;
+        if (diffDays <= 0) {
+            // Overdue or due today gets a massive boost.
+            urgencyBoost = 150;
+        } else if (diffDays <= 14) {
+            // Due within the next 14 days. The boost is inversely proportional to the number of days away.
+            // e.g., due tomorrow (diffDays=1) gets +100, due in 7 days gets ~+14.
+            urgencyBoost = Math.round(100 / diffDays);
+        }
     }
 
     const taskIndex = allTasks.findIndex(t => t.id === id);

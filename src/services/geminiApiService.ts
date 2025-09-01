@@ -14,41 +14,21 @@ Provide your best estimates for the following properties in a JSON object:
 - Energy: 'low', 'medium', or 'high'.
 - Context: A single, relevant keyword (e.g., 'work', 'home', 'computer').
 - StartDate: (Optional) YYYY-MM-DD format if a specific start date is mentioned, otherwise use "None".
+- DueDate: (Optional) YYYY-MM-DD format for the upcoming due date. If a date like "Sep 4" is mentioned and it has already passed this year, assume it's for next year. Otherwise use "None".
 
-CRITICAL: If the total EstTime is greater than 60 minutes, you MUST break the task down into a series of smaller, actionable subtasks.
-- The 'subtasks' property should be an array of objects.
-- Each object in the 'subtasks' array MUST have 'title' (string) and 'estTime' (integer) properties.
-- For subtasks that MUST be completed in a specific order, add a 'sequence' number (integer, starting from 1).
-- For subtasks that depend on others, add a 'dependsOn' property, which is an array of strings containing the titles of the subtasks it depends on. Ensure dependencies are logical and not circular.
-- The sum of the subtask estTimes should be reasonably close to the total EstTime.
-- If the task is small (<= 60 minutes), the 'subtasks' array should be empty or omitted.
+IMPORTANT: Do NOT generate subtasks.
 
 Respond ONLY with a valid, raw JSON object. Do not include any other text, explanations, or markdown formatting.
 
-Example for a LARGE task with dependencies:
-{
-  "EstTime": 180,
-  "Urgency": 8,
-  "Importance": 9,
-  "Energy": "high",
-  "Context": "project-launch",
-  "StartDate": "None",
-  "subtasks": [
-    { "title": "Finalize feature A", "estTime": 60, "sequence": 1 },
-    { "title": "Test feature A", "estTime": 30, "sequence": 2, "dependsOn": ["Finalize feature A"] },
-    { "title": "Develop feature B", "estTime": 45, "sequence": 3 },
-    { "title": "Integrate A and B", "estTime": 45, "sequence": 4, "dependsOn": ["Test feature A", "Develop feature B"] }
-  ]
-}
-
-Example for a SMALL task (<=60 min):
+Example response:
 {
   "EstTime": 45,
   "Urgency": 7,
   "Importance": 6,
   "Energy": "medium",
   "Context": "email",
-  "StartDate": "None"
+  "StartDate": "None",
+  "DueDate": "2025-09-04"
 }`;
 
     try {
@@ -91,40 +71,81 @@ Example for a SMALL task (<=60 min):
             throw new Error("Invalid JSON response from AI.");
         }
 
-        const parsedJson = JSON.parse(jsonMatch[0]);
-
-        if (parsedJson.subtasks) {
-            validateSubtaskDependencies(parsedJson.subtasks);
-            parsedJson.subtasks = sanitizeDependencies(parsedJson.subtasks);
-        }
-
-        return parsedJson;
+        return JSON.parse(jsonMatch[0]);
     } catch (error) {
         console.error('Error calling Gemini API:', error);
         throw new Error('Failed to get response from Gemini API.');
     }
 };
 
+export const getAIBulkTasks = async (apiKey: string, userInput: string, listNames: string[], defaultListName: string) => {
+    const listNamesString = listNames.join(', ');
+    const prompt = `You are an intelligent task creation assistant. Analyze the user's message and extract all the tasks they want to create. The user might provide multiple tasks in a single message. For each task, identify its title, a detailed description (body), and the target list name.
 
-function validateSubtaskDependencies(subtasks: any[]) {
-    const titles = new Set(subtasks.map(s => s.title));
-    for (const subtask of subtasks) {
-        if (subtask.dependsOn) {
-            for (const dep of subtask.dependsOn) {
-                if (!titles.has(dep)) {
-                    console.warn(`Invalid dependency: '${dep}' not found. Removing it.`);
-                }
-            }
-        }
+User's message:
+"""
+${userInput}
+"""
+
+Respond with a valid, raw JSON object containing a single key "tasks". The value of "tasks" should be an array of objects. Each object in the array represents a single task and must have the following properties:
+- "title": A concise title for the task (string).
+- "body": A detailed description for the task. If no description is provided, create a brief one based on the title (string).
+- "listName": The name of the Microsoft To Do list this task should be added to. If the user doesn't specify a list, use your best judgment to categorize it into one of the following available lists: ${listNamesString}. If no list seems appropriate, use the default list: "${defaultListName}".
+
+CRITICAL: Respond ONLY with the JSON object. Do not include any other text, explanations, or markdown formatting.
+
+Example response:
+{
+  "tasks": [
+    {
+      "title": "Buy groceries",
+      "body": "Need to buy milk, eggs, and bread from the store.",
+      "listName": "Shopping"
+    },
+    {
+      "title": "Finish Q3 report",
+      "body": "Complete the financial analysis and write the summary for the Q3 report.",
+      "listName": "Work"
     }
-}
+  ]
+}`;
 
-function sanitizeDependencies(subtasks: any[]) {
-    const titles = new Set(subtasks.map(s => s.title));
-    return subtasks.map(subtask => {
-        if (subtask.dependsOn) {
-            subtask.dependsOn = subtask.dependsOn.filter((dep: string) => titles.has(dep));
+    try {
+        const ai = new GoogleGenAI({
+            apiKey: apiKey,
+        });
+
+        const model = 'gemini-2.5-pro';
+        const contents = [
+            {
+                role: 'user' as const,
+                parts: [
+                    {
+                        text: prompt,
+                    },
+                ],
+            },
+        ];
+
+        const response = await ai.models.generateContent({
+            model,
+            contents,
+        });
+
+        if (!response.candidates || response.candidates.length === 0) {
+            throw new Error('No response from Gemini API.');
         }
-        return subtask;
-    });
-}
+
+        let resultText = response.candidates[0].content.parts[0].text;
+
+        const jsonMatch = resultText.match(/{[\s\S]*}/);
+        if (!jsonMatch) {
+            throw new Error("Invalid JSON response from AI.");
+        }
+
+        return JSON.parse(jsonMatch[0]);
+    } catch (error) {
+        console.error('Error calling Gemini API for bulk tasks:', error);
+        throw new Error('Failed to get response from Gemini API.');
+    }
+};

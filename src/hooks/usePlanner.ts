@@ -28,6 +28,7 @@ export const usePlanner = () => {
     const [updatingChecklistItemId, setUpdatingChecklistItemId] = useState<string | null>(null);
     const [workloadWarnings, setWorkloadWarnings] = useState<string[]>([]);
     const [planMeta, setPlanMeta] = useState<PlannedDayMeta | null>(null);
+    const [isBulkCreating, setIsBulkCreating] = useState(false);
 
     const [focusTask, setFocusTask] = useState<EnrichedTask | null>(null);
     const [filter, setFilter] = useState({context: 'all'});
@@ -412,21 +413,35 @@ ${propertiesString}
 ---
 ${originalDescription}`;
 
-        await graphApi.updateTask(accessToken, (taskToEnrich as any).listId, taskToEnrich.id, {
-            body: {content: newBodyContent, contentType: 'text'}
-        });
+        const updatePayload: {
+            body: { content: string; contentType: string };
+            dueDateTime?: { dateTime: string; timeZone: string };
+        } = {
+            body: { content: newBodyContent, contentType: 'text' }
+        };
 
-        if (estimates.subtasks && estimates.subtasks.length > 0) {
-            if (taskToEnrich.checklistItems && taskToEnrich.checklistItems.length > 0) {
-                for (const item of taskToEnrich.checklistItems) {
-                    await graphApi.deleteChecklistItem(accessToken, (taskToEnrich as any).listId, taskToEnrich.id, item.id);
-                }
+        if (estimates.DueDate && estimates.DueDate !== 'None') {
+            // AI returns YYYY-MM-DD. new Date() can interpret this as UTC midnight,
+            // which can become the previous day in some timezones.
+            // Appending T12:00:00 makes it timezone-neutral for date purposes.
+            let dueDate = new Date(`${estimates.DueDate}T12:00:00Z`);
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // If the parsed due date is in the past, assume it's for the next year.
+            if (dueDate < today) {
+                dueDate.setFullYear(dueDate.getFullYear() + 1);
             }
-            for (const subtask of estimates.subtasks) {
-                const displayName = `${subtask.title} (${subtask.estTime} min)`;
-                await graphApi.createChecklistItem(accessToken, (taskToEnrich as any).listId, taskToEnrich.id, {displayName});
-            }
+
+            const utcEndDate = new Date(Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth(), dueDate.getUTCDate(), 23, 59, 59, 999));
+            updatePayload.dueDateTime = {
+                dateTime: utcEndDate.toISOString(),
+                timeZone: 'UTC'
+            };
         }
+
+        await graphApi.updateTask(accessToken, (taskToEnrich as any).listId, taskToEnrich.id, updatePayload);
     }, [acquireToken]);
 
     const enrichSingleTask = async (taskToEnrich: Task | EnrichedTask) => {
@@ -561,6 +576,69 @@ ${originalDescription}`;
         }
     }, [acquireToken, fetchAndProcessTasks]);
 
+    const bulkCreateTasksFromPrompt = useCallback(async (prompt: string) => {
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        if (!apiKey) {
+            throw new Error("Gemini API key is not configured.");
+        }
+        if (taskLists.length === 0) {
+            throw new Error("Task lists not loaded yet. Please wait a moment and try again.");
+        }
+
+        setIsBulkCreating(true);
+        showLoadingToast("AI is processing your request...");
+
+        try {
+            const listNames = taskLists.map(list => list.displayName).filter(name => name !== "Today's Plan");
+            const defaultList = taskLists.find(list => list.displayName === "Tasks") || taskLists[0];
+
+            const aiResponse = await geminiApi.getAIBulkTasks(apiKey, prompt, listNames, defaultList.displayName);
+
+            if (!aiResponse.tasks || !Array.isArray(aiResponse.tasks)) {
+                throw new Error("AI response did not contain a valid tasks array.");
+            }
+
+            showLoadingToast(`Creating ${aiResponse.tasks.length} tasks...`);
+
+            let createdCount = 0;
+            let failedCount = 0;
+
+            for (const task of aiResponse.tasks) {
+                const targetList = taskLists.find(list => list.displayName.toLowerCase() === task.listName.toLowerCase());
+                const listId = targetList ? targetList.id : defaultList.id;
+
+                try {
+                    const accessToken = await acquireToken();
+                    const taskPayload = {
+                        title: task.title,
+                        body: {
+                            content: task.body,
+                            contentType: 'text'
+                        }
+                    };
+                    await graphApi.createTaskInList(accessToken, listId, taskPayload);
+                    createdCount++;
+                } catch (e) {
+                    console.error(`Failed to create task "${task.title}":`, e);
+                    failedCount++;
+                }
+            }
+
+            await fetchAndProcessTasks(true);
+
+            const summary = `Created ${createdCount} tasks. ${failedCount > 0 ? `${failedCount} failed.` : ''}`;
+            showSuccessToast(summary);
+            return { success: true, summary, createdCount, failedCount, tasks: aiResponse.tasks };
+
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during bulk creation.";
+            showErrorToast(errorMessage);
+            return { success: false, summary: errorMessage, createdCount: 0, failedCount: 0, tasks: [] };
+        } finally {
+            setIsBulkCreating(false);
+        }
+    }, [acquireToken, taskLists, fetchAndProcessTasks]);
+
     const updateChecklistItemStatus = useCallback(async (listId: string, taskId: string, checklistItemId: string, isChecked: boolean) => {
         setUpdatingChecklistItemId(checklistItemId);
         try {
@@ -665,6 +743,8 @@ ${originalDescription}`;
         enrichingTaskId,
         taskLists,
         createTask,
+        bulkCreateTasksFromPrompt,
+        isBulkCreating,
         completeTask,
         completingTaskId,
         updateChecklistItemStatus,

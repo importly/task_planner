@@ -1,6 +1,6 @@
 import { useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, LogIn, LayoutDashboard, ClipboardCheck, ListTodo, FileWarning } from "lucide-react";
+import { Loader2, LogIn, LayoutDashboard, ClipboardCheck, ListTodo, FileWarning, BrainCircuit } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,6 +15,7 @@ import { TaskAccordion } from "@/components/TaskAccordion";
 import { TimelineView } from "@/components/TimelineView";
 import { EditTaskForm } from "@/components/EditTaskForm";
 import { WorkloadWarningBanner } from "@/components/WorkloadWarningBanner";
+import { BulkAddView } from "@/components/BulkAddView";
 
 // Hooks
 import { useIndexState } from "@/hooks/useIndexState";
@@ -121,7 +122,7 @@ const Index = () => {
                 />
 
                 <Tabs defaultValue="plan" className="w-full">
-                    <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto sm:h-10">
+                    <TabsList className="grid w-full grid-cols-1 sm:grid-cols-4 h-auto sm:h-10">
                         <TabsTrigger value="plan" className="flex-wrap">
                             <ClipboardCheck className="mr-2 h-4 w-4" />
                             Today's Plan <Badge variant="secondary" className="ml-2">{state.todaysPlan.length}</Badge>
@@ -133,6 +134,10 @@ const Index = () => {
                         <TabsTrigger value="triage">
                             <FileWarning className="mr-2 h-4 w-4" />
                             Needs Review <Badge variant="destructive" className="ml-2">{state.needsReviewTasks.length}</Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="bulk-add">
+                            <BrainCircuit className="mr-2 h-4 w-4" />
+                            Bulk Add (AI)
                         </TabsTrigger>
                     </TabsList>
 
@@ -192,6 +197,13 @@ const Index = () => {
                             onEditTask={state.setEditingTask}
                             onUpdateChecklistItemDetails={handleUpdateChecklistItemDetails}
                             onFocusTask={state.handleFocus}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="bulk-add" className="mt-6">
+                        <BulkAddView
+                            bulkCreateTasks={state.bulkCreateTasksFromPrompt}
+                            isProcessing={state.isBulkCreating}
                         />
                     </TabsContent>
                 </Tabs>
