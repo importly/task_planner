@@ -33,6 +33,7 @@ export const usePlanner = () => {
     const [focusTask, setFocusTask] = useState<EnrichedTask | null>(null);
     const [filter, setFilter] = useState({context: 'all'});
     const [sort, setSort] = useState({by: 'score', direction: 'desc'});
+    const [timeOverrides, setTimeOverrides] = useState<Record<string, Date>>({});
 
     // Google Calendar State
     const [googleToken, setGoogleToken] = useState<string | null>(() => localStorage.getItem("googleToken"));
@@ -315,6 +316,7 @@ export const usePlanner = () => {
             setTodaysPlan(plan);
             setWorkloadWarnings(meta.warnings);
             setPlanMeta(meta);
+            setTimeOverrides({}); // Clear manual overrides when generating a new plan
 
             const planIds = new Set(plan.map(p => p.id));
             setAvailableTasks(allEnrichedTasks.filter(t => !planIds.has(t.id)));
@@ -723,6 +725,13 @@ ${originalDescription}`;
         setWorkloadWarnings(warnings => warnings.filter(w => w !== warningToDismiss));
     };
 
+    const updateItemStartTime = useCallback((itemId: string, newStartTime: Date) => {
+        setTimeOverrides(prev => ({
+            ...prev,
+            [itemId]: newStartTime,
+        }));
+    }, []);
+
     return {
         isAuthenticated,
         account,
@@ -767,5 +776,8 @@ ${originalDescription}`;
         workloadWarnings,
         dismissWarning,
         planMeta,
+        // DND features
+        timeOverrides,
+        updateItemStartTime,
     };
 };

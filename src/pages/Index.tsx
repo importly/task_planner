@@ -110,7 +110,12 @@ const Index = () => {
 
                 <div className="mb-8">
                     <h3 className="text-lg font-semibold mb-3 text-muted-foreground">Today's Timeline</h3>
-                    <TimelineView tasks={state.todaysPlan} calendarEvents={state.calendarEvents} />
+                    <TimelineView
+                        tasks={state.todaysPlan}
+                        calendarEvents={state.calendarEvents}
+                        timeOverrides={state.timeOverrides}
+                        onUpdateItemStartTime={state.updateItemStartTime}
+                    />
                 </div>
 
                 <TaskFilters
