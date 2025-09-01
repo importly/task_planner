@@ -11,7 +11,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/
 import {Calendar as CalendarIcon, Loader2, Save} from "lucide-react";
 import {EnrichedTask, Task} from "@/types";
 import {format} from "date-fns";
-import {cn} from "@/lib/utils";
+import {cn, parseGraphApiDate} from "@/lib/utils";
 import {Calendar} from "@/components/ui/calendar";
 import {Popover, PopoverContent, PopoverTrigger,} from "@/components/ui/popover";
 
@@ -67,7 +67,7 @@ export const EditTaskForm = ({task, onUpdate, onSuccess}: EditTaskFormProps) => 
             energy: enrichedTask?.energy || "medium",
             context: enrichedTask?.context || "general",
             startDate: enrichedTask?.startDate && enrichedTask.startDate !== 'None' ? new Date(enrichedTask.startDate.replace(/-/g, '\/')) : undefined,
-            dueDate: task.dueDateTime?.dateTime ? new Date(task.dueDateTime.dateTime) : undefined,
+            dueDate: parseGraphApiDate(task.dueDateTime) ?? undefined,
         },
     });
 
@@ -99,10 +99,17 @@ ${data.description || ""}`;
         };
 
         if (data.dueDate) {
-            const dueDateWithTime = new Date(data.dueDate);
-            dueDateWithTime.setUTCHours(12, 0, 0, 0); // Set to midday UTC
+            const selectedDate = new Date(data.dueDate);
+            const year = selectedDate.getFullYear();
+            const month = selectedDate.getMonth();
+            const day = selectedDate.getDate();
+
+            // Create a new Date object representing the end of the selected day in UTC.
+            // This provides a consistent, unambiguous point in time for the API.
+            const utcEndDate = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
+
             payload.dueDateTime = {
-                dateTime: dueDateWithTime.toISOString(),
+                dateTime: utcEndDate.toISOString(),
                 timeZone: 'UTC'
             };
         } else {

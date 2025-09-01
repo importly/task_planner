@@ -17,10 +17,11 @@ import {
   Tag,
   Zap
 } from "lucide-react";
-import {format, formatDistanceToNow} from 'date-fns';
+import {format, endOfDay, isPast} from 'date-fns';
 import {ChecklistItem} from "./ChecklistItem";
 import {Progress} from "@/components/ui/progress";
 import {CONTEXT_COLORS, ENERGY_COLORS} from "@/lib/constants";
+import {parseGraphApiDate, formatDueDateDistance} from "@/lib/utils";
 
 const isEnriched = (task: Task | EnrichedTask): task is EnrichedTask => {
     return (task as EnrichedTask).score !== undefined;
@@ -51,8 +52,8 @@ export const TaskCard = ({
 }) => {
     const enriched = isEnriched(task);
 
-    const dueDate = task.dueDateTime?.dateTime ? new Date(task.dueDateTime.dateTime) : null;
-    const isOverdue = dueDate && dueDate < new Date();
+    const dueDate = parseGraphApiDate(task.dueDateTime);
+    const isOverdue = dueDate && isPast(endOfDay(dueDate));
     const startDate = enriched && task.startDate && task.startDate !== 'None' ? new Date(task.startDate.replace(/-/g, '\/')) : null;
 
     const getDescription = (content: string) => {
@@ -205,7 +206,7 @@ export const TaskCard = ({
                     {dueDate && (
                         <span className={`flex items-center ${isOverdue ? 'text-destructive' : ''}`}>
                     <Calendar className="w-3 h-3 mr-1"/>
-                    Due {format(dueDate, 'MMM d')} ({formatDistanceToNow(dueDate, {addSuffix: true})})
+                    Due {format(dueDate, 'MMM d')} ({formatDueDateDistance(dueDate)})
                 </span>
                     )}
                 </CardFooter>
